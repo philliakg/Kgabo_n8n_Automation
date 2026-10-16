@@ -1,0 +1,244 @@
+{
+  "id": "StudentFeedback1",
+  "name": "Student Feedback Automation",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "student-feedback",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000001",
+      "name": "Receive Feedback",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "5f3b2c8e-7d1a-4b6e-9c2f-1a2b3c4d5e6f"
+    },
+    {
+      "parameters": {
+        "jsCode": "// get the data that the form sent\nconst body = $input.first().json.body;\n\nlet errors = [];\n\n// check student name\nif (!body.studentName || body.studentName.trim() === '') {\n  errors.push('Student name is missing');\n}\n\n// check email\nif (!body.email || body.email.trim() === '') {\n  errors.push('Email is missing');\n} else if (!body.email.includes('@')) {\n  errors.push('Email is not valid');\n}\n\n// check course\nif (!body.courseName || body.courseName.trim() === '') {\n  errors.push('Course name is missing');\n}\n\n// check rating\nif (!body.rating) {\n  errors.push('Rating is missing');\n} else if (Number(body.rating) < 1 || Number(body.rating) > 5) {\n  errors.push('Rating must be between 1 and 5');\n}\n\n// check feedback\nif (!body.feedback || body.feedback.trim() === '') {\n  errors.push('Feedback message is missing');\n}\n\nif (errors.length > 0) {\n  return [{ json: { isValid: false, errorMessage: errors.join(', ') } }];\n}\n\nreturn [{\n  json: {\n    isValid: true,\n    studentName: body.studentName.trim(),\n    email: body.email.trim(),\n    courseName: body.courseName.trim(),\n    rating: Number(body.rating),\n    feedback: body.feedback.trim(),\n    submittedAt: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000002",
+      "name": "Validate Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c0nd0001-0000-4000-8000-000000000001",
+              "leftValue": "={{ $json.isValid }}",
+              "rightValue": "",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000003",
+      "name": "Is Data Valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": false,\n  \"message\": \"{{ $json.errorMessage }}\"\n}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000004",
+      "name": "Respond With Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "c0nd0002-0000-4000-8000-000000000002",
+              "leftValue": "={{ $json.rating }}",
+              "rightValue": 2,
+              "operator": {
+                "type": "number",
+                "operation": "lte"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "looseTypeValidation": true,
+        "options": {}
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000005",
+      "name": "Rating 2 or Lower?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 200]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s1000001-0000-4000-8000-000000000001", "name": "Timestamp", "value": "={{ $json.submittedAt }}", "type": "string" },
+            { "id": "s1000001-0000-4000-8000-000000000002", "name": "Student Name", "value": "={{ $json.studentName }}", "type": "string" },
+            { "id": "s1000001-0000-4000-8000-000000000003", "name": "Email", "value": "={{ $json.email }}", "type": "string" },
+            { "id": "s1000001-0000-4000-8000-000000000004", "name": "Course Name", "value": "={{ $json.courseName }}", "type": "string" },
+            { "id": "s1000001-0000-4000-8000-000000000005", "name": "Rating", "value": "={{ $json.rating }}", "type": "number" },
+            { "id": "s1000001-0000-4000-8000-000000000006", "name": "Feedback", "value": "={{ $json.feedback }}", "type": "string" },
+            { "id": "s1000001-0000-4000-8000-000000000007", "name": "Status", "value": "Needs Attention", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000006",
+      "name": "Mark Needs Attention",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, 100]
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            { "id": "s2000002-0000-4000-8000-000000000001", "name": "Timestamp", "value": "={{ $json.submittedAt }}", "type": "string" },
+            { "id": "s2000002-0000-4000-8000-000000000002", "name": "Student Name", "value": "={{ $json.studentName }}", "type": "string" },
+            { "id": "s2000002-0000-4000-8000-000000000003", "name": "Email", "value": "={{ $json.email }}", "type": "string" },
+            { "id": "s2000002-0000-4000-8000-000000000004", "name": "Course Name", "value": "={{ $json.courseName }}", "type": "string" },
+            { "id": "s2000002-0000-4000-8000-000000000005", "name": "Rating", "value": "={{ $json.rating }}", "type": "number" },
+            { "id": "s2000002-0000-4000-8000-000000000006", "name": "Feedback", "value": "={{ $json.feedback }}", "type": "string" },
+            { "id": "s2000002-0000-4000-8000-000000000007", "name": "Status", "value": "Positive", "type": "string" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000007",
+      "name": "Mark Positive",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "operation": "append",
+        "documentId": {
+          "__rl": true,
+          "value": "PASTE_YOUR_GOOGLE_SHEET_URL_HERE",
+          "mode": "url"
+        },
+        "sheetName": {
+          "__rl": true,
+          "value": "Sheet1",
+          "mode": "name"
+        },
+        "columns": {
+          "mappingMode": "autoMapInputData",
+          "value": {},
+          "matchingColumns": [],
+          "schema": []
+        },
+        "options": {}
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000008",
+      "name": "Save to Google Sheets",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.5,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{ $('Validate Data').item.json.email }}",
+        "subject": "Thank you for your feedback!",
+        "emailType": "text",
+        "message": "=Hi {{ $('Validate Data').item.json.studentName }},\n\nThank you for the feedback! Your response has been received successfully.\n\nCourse: {{ $('Validate Data').item.json.courseName }}\nYour rating: {{ $('Validate Data').item.json.rating }} / 5\n\nWe read every message and use it to make our courses better.\n\nKind regards,\nThe Training Team",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000009",
+      "name": "Send Thank You Email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.1,
+      "position": [1320, 200],
+      "webhookId": "9a8b7c6d-5e4f-4a3b-8c2d-1e0f9a8b7c6d"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"message\": \"Thank you for the feedback! Your response has been received successfully.\"\n}",
+        "options": {
+          "responseCode": 200
+        }
+      },
+      "id": "a1f0c001-0000-4000-8000-000000000010",
+      "name": "Respond With Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 200]
+    }
+  ],
+  "connections": {
+    "Receive Feedback": {
+      "main": [[{ "node": "Validate Data", "type": "main", "index": 0 }]]
+    },
+    "Validate Data": {
+      "main": [[{ "node": "Is Data Valid?", "type": "main", "index": 0 }]]
+    },
+    "Is Data Valid?": {
+      "main": [
+        [{ "node": "Rating 2 or Lower?", "type": "main", "index": 0 }],
+        [{ "node": "Respond With Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Rating 2 or Lower?": {
+      "main": [
+        [{ "node": "Mark Needs Attention", "type": "main", "index": 0 }],
+        [{ "node": "Mark Positive", "type": "main", "index": 0 }]
+      ]
+    },
+    "Mark Needs Attention": {
+      "main": [[{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]]
+    },
+    "Mark Positive": {
+      "main": [[{ "node": "Save to Google Sheets", "type": "main", "index": 0 }]]
+    },
+    "Save to Google Sheets": {
+      "main": [[{ "node": "Send Thank You Email", "type": "main", "index": 0 }]]
+    },
+    "Send Thank You Email": {
+      "main": [[{ "node": "Respond With Success", "type": "main", "index": 0 }]]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}
